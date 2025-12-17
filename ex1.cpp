@@ -175,7 +175,15 @@ no* criar(int valor) {
     n->altura = 1;
     return n;
 }
+no* criar(int valor) {
+    no* n = (no*) calloc(1, sizeof(no));
+    if(n != NULL) {
+        n->info = valor;
+        n->altura = 1;
+    }
 
+    return n;
+}
 // --- Rotações (O segredo da AVL) ---
 
 // Rotação Direita (LL): O filho da esquerda sobe
@@ -245,21 +253,94 @@ no* inserir(no* n, int valor) {
     return n;
 }
 
+no* remover(no *n, int valor) {
+    if (n == NULL)
+        return NULL;
+
+    no *temp = NULL;
+    if(valor > n->info) {
+        n->sad = remover(n->sad, valor);
+        if(fb(n) == 2) {
+            if(fb(n->sae) >= 0)
+                n = rot_direita(n);
+            else {
+                n->sae = rot_esquerda(n->sae);
+                n = rot_direita(n);
+            }
+        }
+    } else if(valor < n->info) {
+        n->sae = remover(n->sae, valor);
+        if(fb(n) == -2)  {
+            if(fb(n->sad) <= 0)
+                n = rot_esquerda(n);
+            else {
+                n->sad = rot_direita(n->sad);
+                n = rot_esquerda(n);
+            }
+        }
+    } else {
+        if(n->sad != NULL) { 
+            temp = n->sad;
+            while(temp->sae != NULL)
+                temp = temp->sae;
+ 
+            n->info = temp->info;
+            n->sad = remover(n->sad, temp->info);
+            if(fb(n) == 2) {
+                if(fb(n->sae) >= 0)
+                    n = rot_direita(n);
+                else {
+                    n->sae = rot_esquerda(n->sae);
+                    n = rot_direita(n);
+                }
+            }
+        } else {
+            return n->sae;
+        }
+    }
+    n->altura = altura(n);
+    return n;
+}
+
+void largura(no* n) {
+    queue<no*> f;
+    f.push(n);
+    while(!f.empty()) {
+        no* atual = f.front();
+        cout << atual->info << " ";
+        f.pop();
+        if(atual->sae)
+            f.push(atual->sae);
+        if(atual->sad)
+            f.push(atual->sad);
+    }
+}
+
+void liberar(no** n) {
+    if(n == NULL)
+        return;
+    
+    no* temp = *n;
+    liberar(&((*n)->sae));
+    liberar(&((*n)->sad));
+    free(temp);
+}
+
+
+void em_ordem(no *n) {
+    if(n == NULL)
+        return;
+
+    em_ordem(n->sae);
+    cout << n->info << " ";
+    em_ordem(n->sad);
+}
+
 // =========================================================================
 // PARTE 2: PROGRAMAÇÃO DINÂMICA (DP)
 // =========================================================================
 
-/*
-   CONCEITO CHAVE:
-   Nunca recalcule o que você já sabe. Guarde os resultados em um vetor.
-   
-   TEMPLATE PARA A PROVA:
-   Use isso se cair problemas como:
-   - Fibonacci
-   - Pular Degraus (Sapo)
-   - Troco de Moedas
-   - Corte de Hastes
-*/
+
 
 // --- Variáveis Globais para Top-Down ---
 // O vetor memo deve ser maior que o N máximo do problema
