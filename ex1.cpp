@@ -6,8 +6,7 @@ Compilar com: g++ este_arquivo.cpp
 #define HASH_H
 #include <iostream>
 #include <vector>
-#include <fstream>
-#include <chrono>
+#include <algorithm> // Necessário para usar max()
 #include <ctime>
 #include <cstdlib>
 #include <string>
@@ -17,7 +16,6 @@ Compilar com: g++ este_arquivo.cpp
 #endif //final do arquivo
 
 using namespace std;
-using namespace std::chrono;
 
 void preencher(vector<int>& v, int min, int max) {
     for (int i = 0; i < v.size(); i++) {
@@ -32,7 +30,7 @@ int main() {
     cout << "--- Secao B: <iostream> e <string> ---" << endl;
     Utilitaria::resetarCor();
     Utilitaria::aguardar(1000); 
-     Utilitaria::limparTela();
+    Utilitaria::limparTela();
     string nome_arquivo;
     cout << "Digite um nome para o arquivo de teste: ";
     // cin >> nome_arquivo; // CUIDADO: Lê só UMA palavra
@@ -50,97 +48,7 @@ int main() {
     
     cout << "Tamanho do vetor: " << meu_vetor.size() << endl;
 
-    cout << "--- Secao D: <chrono> ---" << endl;
     
-    srand(time(NULL));
-    const int TAM_MAX = 1000000;
-    
-    vector<int> v_mestre(TAM_MAX);
-    preencher(v_mestre, 1, TAM_MAX); 
-
-    fstream fout_quick("quick.txt");
-    fstream fout_merge("merge.txt");
-
-    if (!fout_quick.is_open() || !fout_merge.is_open()) {
-        cout << "Erro ao abrir arquivos de saida." << endl;
-        return 1;
-    }
-
-    cout << "Iniciando benchmarking..." << endl;
-
-    for (int n = 10000; n <= TAM_MAX; n += 10000) {
-        
-        cout << "Testando para N = " << n << endl;
-
-        vector<int> v_copia_quick = v_mestre;
-        vector<int> v_copia_merge = v_mestre;
-
-        auto ini_q = high_resolution_clock::now();
-        quicksort(v_copia_quick, 0, n - 1); // IMPORTANTE: usar 'n-1'
-        auto fim_q = high_resolution_clock::now();
-        duration<double> t_q = fim_q - ini_q;
-
-        fout_quick << n << " " << duration_cast<milliseconds>(t_q).count() / 1000.0 << endl;
-
-        auto ini_m = high_resolution_clock::now();
-        mergeSort(v_copia_merge, 0, n - 1);
-        auto fim_m = high_resolution_clock::now();
-        duration<double> t_m = fim_m - ini_m;
-        fout_merge << n << " " << duration_cast<milliseconds>(t_m).count() / 1000.0 << endl;
-    }
-
-    fout_quick.close();
-    fout_merge.close();
-
-    cout << "Benchmarking concluido." << endl;
-
-
-    cout << "--- Secao E: <fstream> (Escrita) ---" << endl;
-
-   
-    // Se não usar "ios::app", ele SOBRESCREVE o arquivo.
-    fstream arquivo_saida(nome_arquivo + ".txt", ios::out | ios::app);
-
-    if (!arquivo_saida.is_open()) {
-        cout << "ERRO: Nao consegui abrir o arquivo para escrita!" << endl;
-    } else {
-        arquivo_saida << "--- Log de Teste ---" << endl;
-        arquivo_saida << "Tempo de ordenacao: " << segundos << "s" << endl;
-        arquivo_saida << "Tamanho do vetor: " << v_grande.size() << endl;
-
-        arquivo_saida.close();
-        cout << "Dados de benchmarking salvos em '" << nome_arquivo << ".txt'" << endl;
-        cout << endl;
-    }
-
-
-
-    cout << "--- Secao F: <fstream> (Leitura) ---" << endl;
-
-    // "ifstream" é específico para LEITURA
-    ifstream arquivo_entrada(nome_arquivo + ".txt");
-
-    if (!arquivo_entrada.is_open()) {
-        cout << "ERRO: Nao consegui ler o arquivo '" << nome_arquivo << ".txt'" << endl;
-    } else {
-        // Exemplo 1: Ler LINHA POR LINHA
-        cout << "Lendo o arquivo linha por linha:" << endl;
-        string linha_lida;
-        while (getline(arquivo_entrada, linha_lida)) {
-            cout << "  [LINHA] " << linha_lida << endl;
-        }
-        arquivo_entrada.close(); // Fecha para reabrir do começo
-
-        // Exemplo 2: Ler CARACTERE POR CARACTERE
-        cout << "\nLendo o arquivo caractere por caractere:" << endl;
-        arquivo_entrada.open(nome_arquivo + ".txt"); // Reabre o arquivo
-        char letra;
-        while (arquivo_entrada.get(letra)) { // 'get' pega um char
-            cout << letra;
-        }
-        arquivo_entrada.close();
-        cout << endl << endl;
-    }
 
     cout << "--- Secao G: <cctype> ---" << endl;
     char c1 = 'A';
@@ -210,6 +118,212 @@ int main() {
 
     free(minha_tabela->table);//c
     free(minha_tabela); //c
+
+    return 0;
+}
+
+
+/*
+    =========================================================================
+    GUIA DE SOBREVIVÊNCIA - PROVA PRÁTICA (AVL + PROGRAMAÇÃO DINÂMICA)
+    =========================================================================
+*/
+
+#include <iostream>
+#include <vector>
+#include <algorithm> // Necessário para usar max()
+
+using namespace std;
+
+// =========================================================================
+// PARTE 1: ÁRVORE AVL
+// =========================================================================
+
+/*
+   LÓGICA DOS PONTEIROS:
+   - sae: Sub-Árvore Esquerda (valores menores)
+   - sad: Sub-Árvore Direita (valores maiores)
+   
+   FATOR DE BALANCEAMENTO (FB):
+   - FB = Altura(Esq) - Altura(Dir)
+   - FB > 1: Pesado na Esquerda (Precisa girar p/ Direita)
+   - FB < -1: Pesado na Direita (Precisa girar p/ Esquerda)
+*/
+
+struct no {
+    int info;
+    no *sae;
+    no *sad;
+    int altura;
+};
+
+// --- Funções Auxiliares ---
+int altura(no *n) {
+    if (n == NULL) return 0;
+    return n->altura;
+}
+
+int fb(no* n) {
+    if (n == NULL) return 0;
+    return altura(n->sae) - altura(n->sad);
+}
+
+no* criar(int valor) {
+    no* n = new no;
+    n->info = valor;
+    n->sae = NULL; n->sad = NULL;
+    n->altura = 1;
+    return n;
+}
+
+// --- Rotações (O segredo da AVL) ---
+
+// Rotação Direita (LL): O filho da esquerda sobe
+no* rot_direita(no* n) {
+    no* E = n->sae;
+    no* temp = E->sad;
+
+    E->sad = n;
+    n->sae = temp;
+
+    n->altura = max(altura(n->sae), altura(n->sad)) + 1;
+    E->altura = max(altura(E->sae), altura(E->sad)) + 1;
+    return E;
+}
+
+// Rotação Esquerda (RR): O filho da direita sobe
+no* rot_esquerda(no* n) {
+    no* D = n->sad;
+    no* temp = D->sae;
+
+    D->sae = n;
+    n->sad = temp;
+
+    n->altura = max(altura(n->sae), altura(n->sad)) + 1;
+    D->altura = max(altura(D->sae), altura(D->sad)) + 1;
+    return D;
+}
+
+// --- Inserção com Balanceamento ---
+no* inserir(no* n, int valor) {
+    // 1. Inserção padrão de BST
+    if (n == NULL) return criar(valor);
+
+    if (valor < n->info)
+        n->sae = inserir(n->sae, valor);
+    else if (valor > n->info)
+        n->sad = inserir(n->sad, valor);
+    else 
+        return n; // Valor duplicado, retorna sem fazer nada
+
+    // 2. Atualizar altura
+    n->altura = 1 + max(altura(n->sae), altura(n->sad));
+
+    // 3. Verificar Balanceamento
+    int bal = fb(n);
+
+    // Caso 1: Peso na Esquerda (LL) -> Rotação Simples Dir
+    if (bal > 1 && valor < n->sae->info)
+        return rot_direita(n);
+
+    // Caso 2: Peso na Direita (RR) -> Rotação Simples Esq
+    if (bal < -1 && valor > n->sad->info)
+        return rot_esquerda(n);
+
+    // Caso 3: Joelho Esquerda-Direita (LR) -> Rot Esq filho + Rot Dir pai
+    if (bal > 1 && valor > n->sae->info) {
+        n->sae = rot_esquerda(n->sae);
+        return rot_direita(n);
+    }
+
+    // Caso 4: Joelho Direita-Esquerda (RL) -> Rot Dir filho + Rot Esq pai
+    if (bal < -1 && valor < n->sad->info) {
+        n->sad = rot_direita(n->sad);
+        return rot_esquerda(n);
+    }
+
+    return n;
+}
+
+// =========================================================================
+// PARTE 2: PROGRAMAÇÃO DINÂMICA (DP)
+// =========================================================================
+
+/*
+   CONCEITO CHAVE:
+   Nunca recalcule o que você já sabe. Guarde os resultados em um vetor.
+   
+   TEMPLATE PARA A PROVA:
+   Use isso se cair problemas como:
+   - Fibonacci
+   - Pular Degraus (Sapo)
+   - Troco de Moedas
+   - Corte de Hastes
+*/
+
+// --- Variáveis Globais para Top-Down ---
+// O vetor memo deve ser maior que o N máximo do problema
+// Inicialize com -1 ou 0 (dependendo se 0 é uma resposta válida)
+vector<int> memo; 
+
+// --- 1. Abordagem TOP-DOWN (Recursão com Memória) ---
+// É igual à recursão normal, mas checa o vetor antes de calcular.
+int dp_top_down(int n) {
+    // 1. Caso Base (Onde a recursão para)
+    if (n <= 1) return n; // Exemplo Fib: retorna 0 ou 1
+
+    // 2. Checagem de Memória (ESSENCIAL)
+    // Se memo[n] não for o valor inicial (-1), já calculamos antes!
+    if (memo[n] != -1) return memo[n];
+
+    // 3. Cálculo e Armazenamento
+    // Salva no vetor antes de retornar
+    // A fórmula "dp(n-1) + dp(n-2)" muda conforme o problema!
+    memo[n] = dp_top_down(n-1) + dp_top_down(n-2);
+    
+    return memo[n];
+}
+
+// --- 2. Abordagem BOTTOM-UP (Iterativa / Tabela) ---
+// Não usa recursão. Constrói a solução do zero até o N.
+int dp_bottom_up(int n) {
+    // 1. Criar a tabela do tamanho necessário
+    vector<int> tab(n + 1);
+
+    // 2. Preencher os Casos Base manualmente
+    tab[0] = 0;
+    tab[1] = 1;
+
+    // 3. Loop do 2 até o N (Construindo a solução)
+    for (int i = 2; i <= n; i++) {
+        // A fórmula de recorrência do problema vem aqui:
+        tab[i] = tab[i-1] + tab[i-2]; 
+    }
+
+    // Retorna a última posição preenchida
+    return tab[n];
+}
+
+// =========================================================================
+// MAIN PARA TESTES RÁPIDOS
+// =========================================================================
+int main() {
+    // --- Teste AVL ---
+    no* raiz = NULL;
+    raiz = inserir(raiz, 10);
+    raiz = inserir(raiz, 20);
+    raiz = inserir(raiz, 30); // Vai causar rotação
+    cout << "Raiz da AVL apos rotacoes: " << raiz->info << endl;
+
+    // --- Teste DP ---
+    int N = 10;
+    
+    // Preparando Top-Down
+    memo.assign(N + 1, -1); // Reseta o memo com -1
+    cout << "Fib Top-Down(" << N << "): " << dp_top_down(N) << endl;
+
+    // Teste Bottom-Up
+    cout << "Fib Bottom-Up(" << N << "): " << dp_bottom_up(N) << endl;
 
     return 0;
 }
