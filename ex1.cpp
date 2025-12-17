@@ -123,23 +123,15 @@ int main() {
 }
 
 
-/*
-    =========================================================================
-    GUIA DE SOBREVIVÊNCIA - PROVA PRÁTICA (AVL + PROGRAMAÇÃO DINÂMICA)
-    =========================================================================
-*/
+cout << "--- Secao AVL ---" << endl;
 
 #include <iostream>
 #include <vector>
-#include <algorithm> // Necessário para usar max()
+#include <algorithm> 
 
 using namespace std;
 
-// =========================================================================
-// PARTE 1: ÁRVORE AVL
-// =========================================================================
 
-/*
    LÓGICA DOS PONTEIROS:
    - sae: Sub-Árvore Esquerda (valores menores)
    - sad: Sub-Árvore Direita (valores maiores)
@@ -148,7 +140,7 @@ using namespace std;
    - FB = Altura(Esq) - Altura(Dir)
    - FB > 1: Pesado na Esquerda (Precisa girar p/ Direita)
    - FB < -1: Pesado na Direita (Precisa girar p/ Esquerda)
-*/
+
 
 struct no {
     int info;
@@ -157,7 +149,6 @@ struct no {
     int altura;
 };
 
-// --- Funções Auxiliares ---
 int altura(no *n) {
     if (n == NULL) return 0;
     return n->altura;
@@ -168,14 +159,14 @@ int fb(no* n) {
     return altura(n->sae) - altura(n->sad);
 }
 
-no* criar(int valor) {
+no* criar(int valor) { //c++
     no* n = new no;
     n->info = valor;
     n->sae = NULL; n->sad = NULL;
     n->altura = 1;
     return n;
 }
-no* criar(int valor) {
+no* criar(int valor) { //c
     no* n = (no*) calloc(1, sizeof(no));
     if(n != NULL) {
         n->info = valor;
@@ -184,9 +175,7 @@ no* criar(int valor) {
 
     return n;
 }
-// --- Rotações (O segredo da AVL) ---
 
-// Rotação Direita (LL): O filho da esquerda sobe
 no* rot_direita(no* n) {
     no* E = n->sae;
     no* temp = E->sad;
@@ -199,7 +188,6 @@ no* rot_direita(no* n) {
     return E;
 }
 
-// Rotação Esquerda (RR): O filho da direita sobe
 no* rot_esquerda(no* n) {
     no* D = n->sad;
     no* temp = D->sae;
@@ -212,9 +200,7 @@ no* rot_esquerda(no* n) {
     return D;
 }
 
-// --- Inserção com Balanceamento ---
 no* inserir(no* n, int valor) {
-    // 1. Inserção padrão de BST
     if (n == NULL) return criar(valor);
 
     if (valor < n->info)
@@ -222,29 +208,25 @@ no* inserir(no* n, int valor) {
     else if (valor > n->info)
         n->sad = inserir(n->sad, valor);
     else 
-        return n; // Valor duplicado, retorna sem fazer nada
+        return n; 
+    valor duplicado nao entra 
 
-    // 2. Atualizar altura
     n->altura = 1 + max(altura(n->sae), altura(n->sad));
 
-    // 3. Verificar Balanceamento
+   
     int bal = fb(n);
 
-    // Caso 1: Peso na Esquerda (LL) -> Rotação Simples Dir
     if (bal > 1 && valor < n->sae->info)
         return rot_direita(n);
 
-    // Caso 2: Peso na Direita (RR) -> Rotação Simples Esq
     if (bal < -1 && valor > n->sad->info)
         return rot_esquerda(n);
 
-    // Caso 3: Joelho Esquerda-Direita (LR) -> Rot Esq filho + Rot Dir pai
     if (bal > 1 && valor > n->sae->info) {
         n->sae = rot_esquerda(n->sae);
         return rot_direita(n);
     }
 
-    // Caso 4: Joelho Direita-Esquerda (RL) -> Rot Dir filho + Rot Esq pai
     if (bal < -1 && valor < n->sad->info) {
         n->sad = rot_direita(n->sad);
         return rot_esquerda(n);
@@ -336,71 +318,117 @@ void em_ordem(no *n) {
     em_ordem(n->sad);
 }
 
-// =========================================================================
-// PARTE 2: PROGRAMAÇÃO DINÂMICA (DP)
-// =========================================================================
+cout << "--- Secao programação dinamica ---" << endl;
+
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+typedef unsigned long long ull;
+
+vector<int> chamadas_por_n;
+long long total_chamadas = 0;
+
+ull fib_com_contagem(int n) {
+    total_chamadas++;      
+    chamadas_por_n[n]++;   
+    if(n < 2)
+        return n;
+    
+    return fib_com_contagem(n-1) + fib_com_contagem(n-2);
+}
+
+int main() {
+    int N = 10;
+    chamadas_por_n.resize(N + 1, 0);
+
+    cout << "Calculando fib(" << N << ")..." << endl;
+    ull resultado = fib_com_contagem(N);
+
+    cout << "Resultado: " << resultado << endl;
+    cout << "Total de chamadas recursivas: " << total_chamadas << endl;
+    cout << "--------------------------------" << endl;
+    cout << "Quantas vezes cada numero foi recalculado:" << endl;
+    for(int i = 0; i <= N; i++) {
+        cout << "fib(" << i << ") foi calculado: " << chamadas_por_n[i] << " vezes." << endl;
+    }
+    
+    O numero de chamadas repetidas (inuteis) é: Total - (N+1)
+    cout << "Chamadas repetidas (desperdicadas): " << total_chamadas - (N+1) << endl;
+
+    return 0;
+}
 
 
+vector<int> memo(tamanho_do_problema, -1); 
 
-// --- Variáveis Globais para Top-Down ---
-// O vetor memo deve ser maior que o N máximo do problema
-// Inicialize com -1 ou 0 (dependendo se 0 é uma resposta válida)
-vector<int> memo; 
-
-// --- 1. Abordagem TOP-DOWN (Recursão com Memória) ---
-// É igual à recursão normal, mas checa o vetor antes de calcular.
 int dp_top_down(int n) {
-    // 1. Caso Base (Onde a recursão para)
-    if (n <= 1) return n; // Exemplo Fib: retorna 0 ou 1
 
-    // 2. Checagem de Memória (ESSENCIAL)
-    // Se memo[n] não for o valor inicial (-1), já calculamos antes!
+    if (n <= 1) return n;
+
     if (memo[n] != -1) return memo[n];
 
-    // 3. Cálculo e Armazenamento
-    // Salva no vetor antes de retornar
-    // A fórmula "dp(n-1) + dp(n-2)" muda conforme o problema!
     memo[n] = dp_top_down(n-1) + dp_top_down(n-2);
     
     return memo[n];
 }
 
-// --- 2. Abordagem BOTTOM-UP (Iterativa / Tabela) ---
-// Não usa recursão. Constrói a solução do zero até o N.
 int dp_bottom_up(int n) {
-    // 1. Criar a tabela do tamanho necessário
     vector<int> tab(n + 1);
 
-    // 2. Preencher os Casos Base manualmente
     tab[0] = 0;
     tab[1] = 1;
 
-    // 3. Loop do 2 até o N (Construindo a solução)
     for (int i = 2; i <= n; i++) {
-        // A fórmula de recorrência do problema vem aqui:
         tab[i] = tab[i-1] + tab[i-2]; 
     }
 
-    // Retorna a última posição preenchida
     return tab[n];
 }
 
-// =========================================================================
-// MAIN PARA TESTES RÁPIDOS
-// =========================================================================
 int main() {
-    // --- Teste AVL ---
-    no* raiz = NULL;
-    raiz = inserir(raiz, 10);
-    raiz = inserir(raiz, 20);
-    raiz = inserir(raiz, 30); // Vai causar rotação
-    cout << "Raiz da AVL apos rotacoes: " << raiz->info << endl;
+    // --- Teste AVL --
+    int valores[] = {10, 15, 20, 9, 5, 16, 17, 8, 6}, //{1, 2, 4, 5, 6, 3},
+        tam = sizeof(valores)/sizeof(int);
+    
+    no * root = NULL;
+    for(int i = 0; i < tam; i++) {
+        root = inserir(root, valores[i]);
+        cout << "largura: ";
+        largura(root);
+        cout << endl;
+    }
+
+    cout << "\nem ordem: ";
+    em_ordem(root);
+    cout << endl;
+
+    cout << "\nremocao de 8 e 10 \n";
+    root = remover(root, 8);
+    root = remover(root, 10);
+
+    cout << "em ordem: ";
+    em_ordem(root);
+    cout << endl;
+    cout << "largura: ";
+    largura(root);
+    cout << endl;
+
+    cout << "\nremocao de 15 \n";
+    root = remover(root, 15);
+
+    cout << "em ordem: ";
+    em_ordem(root);
+    cout << endl;
+    cout << "largura: ";
+    largura(root);
 
     // --- Teste DP ---
     int N = 10;
     
     // Preparando Top-Down
-    memo.assign(N + 1, -1); // Reseta o memo com -1
+   // memo.assign(N + 1, -1); 
     cout << "Fib Top-Down(" << N << "): " << dp_top_down(N) << endl;
 
     // Teste Bottom-Up
